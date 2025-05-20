@@ -1,0 +1,119 @@
+\documentclass[openany, 12pt]{book}
+\input{preamble}
+\title{Terraform Learn via AI}
+\author{Idris}
+\date{May 2025}
+
+% chktex-file 36
+\begin{document}
+
+\chapter{Terraform Language}
+The HCL language is the terraform language.
+
+\begin{definition}{blocks}{}
+	Everything in terraform is blocks. The language is block structured.
+
+	\begin{alist}
+		\item blocks are containers for other content
+		\item usually represent the configuration of some kind of object, like a
+		resource.
+		\item have a block type
+		\item have zero or more labels,
+		\item have a body that contains any number of arguments and nested blocks
+	\end{alist}
+	Most of terraform's features are controlled by top-level blocks in a
+	configuration file.
+
+\end{definition}
+
+\begin{definition}{labels}{}
+	The semantics of label is based of its index.
+\end{definition}
+
+\begin{definition}{argument}{}
+	Arguments assign a value to a name. They appear within blocks.
+
+	An argument consists of a left-hand side (LHS), which is a name, and a
+	right-hand side (RHS), which is an expression. The expression is assigned to
+	the name.
+
+	Some blocks, such as variable and output, may include an argument named
+	type, which declares a type constraint for the value. In other blocks, such
+	as resource, the concept of type is instead conveyed via the first label
+	following the block type.
+\end{definition}
+
+\begin{definition}{expression}{}
+	represent a value, either literally or by referencing and combining other
+	values. They appear as values for arguments, or within other expressions.
+\end{definition}
+
+\begin{definition}{function}{}
+	\begin{alist}
+		\item built-in operation that takes zero or more input expressions and
+		returns an output value.
+		\item pure---produce same result for the same inputs and have no side effects
+		\item two exceptions: uuid() and timestamp()
+		\item cannot access external state or cause external effects.
+	\end{alist}
+\end{definition}
+
+\begin{shell}{}
+<block-type> "<label-1>" "<label-2>" {
+    argument = expression
+    nested_block {
+        ... 
+    }
+}
+\end{shell}
+
+\begin{table}
+	\centering
+	\begin{tabular}{lll}
+		\toprule
+		{Block Type} & {Label Index} & {Meaning}                                              \\
+		\midrule
+		resource     & 0             & Resource type                                          \\
+		             & 1             & local name---identifier within module                  \\
+		provider     & 0             & provider name (aws, google)                            \\
+		module       & 0             & module name                                            \\
+		variable     & 0             & variable name (input identifier)                       \\
+		output       & 0             & output name (used in output map)                       \\
+		data         & 0             & data source type (aws\_ami)                            \\
+		             & 1             & local name                                             \\
+		for\_each    &               & not a block---argument used to iterate over collection \\
+		\bottomrule
+	\end{tabular}
+	\caption{Label semantics by block type in Terraform}
+\end{table}
+
+\begin{table}[h!]
+	\centering
+	\begin{tabular}{ll}
+		\toprule
+		category           & example functions              \\
+		\midrule
+		numeric            & abs, ceil, floor, max, min     \\
+		string             & upper, lower, replace, trim    \\
+		collection         & length, join, merge, flatten   \\
+		encoding           & base64encode, jsonencode       \\
+		filesystem         & dirname, basename, file        \\
+		date/time          & timestamp, timeadd, formatdate \\
+		hash/crypto        & sha256, md5, uuidv5            \\
+		ip network         &                                \\
+		type conversion    & type, can, try, contains       \\
+		terraform specific &                                \\
+		\bottomrule
+	\end{tabular}
+	\caption{Common Terraform built-in function categories}
+\end{table}
+
+\begin{definition}{provider}{}
+
+\end{definition}
+
+\chapter{Terraform CLI}
+
+% \printbibliography{}
+% \printindex{}
+\end{document}

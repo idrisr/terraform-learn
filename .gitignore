@@ -1,0 +1,6 @@
+.direnv
+.devenv
+.envrc
+result
+session.yaml
+.aider*
