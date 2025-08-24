@@ -6,6 +6,184 @@
 
 % chktex-file 36
 \begin{document}
+\tableofcontents
+
+\part{Theory}
+\chapter{Resource Lifecycle}
+A resource is the atomic unit in terraform. Resources are the most important
+element in the Terraform language. Each resource block describes one or more
+infrastructure objects, such as virtual networks, compute instances, or
+higher-level components such as DNS records.
+
+\begin{definition}{Managed Resource}{}
+	Often cloud-based resources, but they don’t have to be. Anything that can be
+	represented as CRUD can be managed as a Terraform resource.
+\end{definition}
+
+\begin{example}{Local Only Resources}{}
+	\begin{enumerate}[label = {(\arabic*)}]
+		\item resources for creating private keys
+		\item self-signed TLS certificates
+		\item random ids
+	\end{enumerate}
+\end{example}
+
+There are three different representations of infra. Before each terraform call,
+it calls to the api to capture the current state.
+
+\begin{center}
+	\begin{tabular}{ll}
+		\toprule
+		        &                       \\
+		\midrule
+		config  & tf files              \\
+		state   & tfstate               \\
+		reality & queried via api calls \\
+		\bottomrule
+	\end{tabular}
+\end{center}
+
+\begin{definition}{attributes}{}
+	Every resource has attributes.  Each attribute is either required, optional,
+	or read-only.  Required attributes must be present in a resource config
+	block, otherwise it's invalid.  Optational attributes can be absent or
+	present. Read-only attributes are those set by the provider, and therefore
+	only exist when the config is built and deployed.
+
+	\begin{center}
+		\begin{tabular}{ll}
+			\toprule
+			attribute type & official name                  \\
+			\midrule
+			required       & required argument              \\
+			optional       & optional argument              \\
+			read-only      & attribute reference (computed) \\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+\end{definition}
+
+\chapter{State}
+Terraform keeps a state file mapping resources in config to real-world objects
+(API IDs, attributes). Drift between state and reality is the core problem it
+manages.
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{ll}
+		\toprule
+		\textbf{State} & \textbf{Meaning}                                                   \\
+		\midrule
+		Planned        & Diff detected between config and state (shown in \texttt{plan})    \\
+		Creating       & Provider \texttt{Create} called during \texttt{apply}              \\
+		Updating       & Provider \texttt{Update} called to reconcile changes               \\
+		Destroying     & Provider \texttt{Delete} called during destroy or replacement      \\
+		Stable         & Config matches state; no changes needed                            \\
+		Tainted        & Resource marked for recreation in next \texttt{apply}              \\
+		Unknown        & Attributes missing or refresh failed (shown as \texttt{<unknown>}) \\
+		\bottomrule
+	\end{tabular}
+	\caption{Terraform resource lifecycle states}
+\end{table}
+
+
+\begin{definition}{State Management}{}
+	Terraform is a state management tool that performs CRUD operations (create,
+	read, update, delete) on managed resources.
+\end{definition}
+
+\chapter{Dependency graph}
+Resources form a DAG, so Terraform knows what to create/destroy in order and in
+parallel.
+
+\chapter{Modules}
+Modules are reusable abstractions over resources; how you scale beyond one-off configs.
+A module can create many resources. In this way, a module is function whose
+codomain is a list of resources.
+
+\begin{definition}{module}{}
+	A \emph{module} is a reusable abstraction over resources. It accepts
+	\emph{inputs} (variables) and yields a finite set of \emph{resources}
+	(and possibly other modules).
+
+	Formally, a module behaves like a function
+	\begin{align*}
+		M : \text{Inputs} \to \{\text{resources}\}
+	\end{align*}
+
+	where the codomain is a collection of resources, which are then merged
+	into the global resource dependency graph.
+\end{definition}
+
+
+\chapter{Providers}
+Each resource type lives in a provider. A provider is a plugin for Terraform
+that offers a collection of resource types. Each resource type is implemented by
+a provider. A provider provides resources to manage a single cloud or
+on-premises infrastructure platform. Providers are distributed separately from
+Terraform, but Terraform can automatically install most providers when
+initializing a working directory.
+
+\begin{definition}{terraform provider}{}
+	\begin{alist}
+		\item plugins for the terraform core
+		\item each plugin is written in go to implement a specific interface
+		\item core knows how to install and execute the plugin
+		\item each designed to work with some platform---aws, azure, google cloud
+		\item core communicates with plugins via remote procedure calls---rpcs
+		\item plugins communicate with their corresponding platforms via the network
+	\end{alist}
+
+\end{definition}
+
+\part{Practice}
+\chapter{Tools}
+\begin{definition}{terraform core}{}
+	\begin{alist}
+		\item terraform binary
+		\item provides functionality used by all platforms
+		\item cli, parser and interpreter for Terraform code (HCL)
+		\item ability to build a dependency graph from resources and data sources
+		\item logic to read and write state files, and so on
+	\end{alist}
+\end{definition}
+
+\begin{intuition}{Terraform}{}
+	There are two programs---terraform and then a provider. Terraform interprets
+	your config file, then sends RPC messages to the provider. The provider then
+	makes the network calls via API.\@
+	\begin{haskell}{}
+core     :: TF -> RPC
+provider :: RPC -> HTTP
+	\end{haskell}
+\end{intuition}
+
+\begin{definition}{terraform plan}{}
+	\begin{enumerate}[label = {(\arabic*)}]
+		\item read the configuration and state
+		\item determine actions to take. can be one of
+		      \begin{multicols}{5}
+			      \begin{enumerate}[label = {(\arabic*)}]
+				      \item create
+				      \item read
+				      \item update
+				      \item delete
+				      \item no-op
+			      \end{enumerate}
+		      \end{multicols}
+		\item output the plan
+	\end{enumerate}
+\end{definition}
+
+\chapter{Terraform CLI}
+
+\begin{definition}{commands}{}
+	\begin{enumerate}[label = {(\arabic*)}]
+		\item init
+		\item apply
+		\item destroy
+	\end{enumerate}
+\end{definition}
 
 \chapter{Terraform Language}
 The HCL language is the terraform language.
@@ -60,10 +238,10 @@ The HCL language is the terraform language.
 
 \begin{shell}{}
 <block-type> "<label-1>" "<label-2>" {
-    argument = expression
-    nested_block {
-        ... 
-    }
+	argument = expression
+	nested_block {
+	...
+	}
 }
 \end{shell}
 
@@ -108,12 +286,85 @@ The HCL language is the terraform language.
 	\caption{Common Terraform built-in function categories}
 \end{table}
 
-\begin{definition}{provider}{}
+\begin{definition}{Block}{}
+	\begin{alist}
+		\item containers for other content
+		\item usually represent the configuration of some kind of object, like a
+		resource.
+		\item have a block type, zero or more labels, and body
+		that contains any number of arguments and nested blocks.
+		\item most of terraform's features are controlled by top-level blocks in
+		a configuration file.
+	\end{alist}
 
+	block types
+	\begin{multicols}{4}
+		\begin{enumerate}[label = {(\arabic*)}]
+			\item data
+			\item import
+			\item locals
+			\item module
+			\item output
+			\item provider
+			\item provisioner
+			\item resource
+			\item terraform
+			\item variable
+		\end{enumerate}
+	\end{multicols}
 \end{definition}
 
-\chapter{Terraform CLI}
+config blocks
 
-% \printbibliography{}
-% \printindex{}
+\begin{definition}{Resource Block}{}
+	\begin{verbatim}
+resource "aws_instance" "helloworld" {...}
+element  type           name         {...}
+          |_________________________|
+                     \/
+                 identifier
+    \end{verbatim}
+\end{definition}
+
+\begin{definition}{Data Block}{}
+	Like a read-only version of Resource blocks. Used to retrieve data about
+	resources that already exists and are managed by an external entity.
+	\begin{enumerate}[label = {(\arabic*)}]
+		\item nested blocks
+		\item attributes
+	\end{enumerate}
+\end{definition}
+
+\begin{definition}{Argument}{}
+	\begin{alist}
+		\item assign a value to a name.
+		\item appear within blocks.
+	\end{alist}
+\end{definition}
+
+\begin{definition}{expression}{}
+	\begin{alist}
+		\item represent a value, either literally or by referencing and combining other values.
+		\item appear as values for arguments, or within other expressions.
+	\end{alist}
+\end{definition}
+
+\begin{definition}{Module}{}
+	self-contained packages of code that allow you to create reusable components
+	by grouping related resources together. You don’t have to know how a module
+	works to be able to use it; you just have to know how to set inputs and
+	outputs.
+\end{definition}
+
+\begin{definition}{Module}{}
+	Think of a module as being sort of like a function with side effects, meaning:
+	\begin{enumerate}[label = {(\arabic*)}]
+		\item function has inputs Terraform calls these input variables.
+		\item function has outputs Terraform calls these output values.
+		\item function does things other than producing output values For example, the function might provision a resource.
+		\item invoke another terraform module like a function call
+	\end{enumerate}
+\end{definition}
+
+
 \end{document}
