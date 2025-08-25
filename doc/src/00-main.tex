@@ -34,11 +34,11 @@ it calls to the api to capture the current state.
 \begin{center}
 	\begin{tabular}{ll}
 		\toprule
-		        &                       \\
+		representation & location              \\
 		\midrule
-		config  & tf files              \\
-		state   & tfstate               \\
-		reality & queried via api calls \\
+		config         & tf files              \\
+		state          & tfstate files         \\
+		reality        & queried via api calls \\
 		\bottomrule
 	\end{tabular}
 \end{center}
@@ -115,6 +115,24 @@ codomain is a list of resources.
 	into the global resource dependency graph.
 \end{definition}
 
+\begin{center}
+	\begin{tabular}{lll}
+		\toprule
+		attribute type  & name                    & description                                  \\
+		\midrule
+		universal       & \texttt{source}         & location of the module (path, git, registry) \\
+		universal       & \texttt{version}        & module version (when using registry)         \\
+		universal       & \texttt{providers}      & map of provider instances passed into module \\
+		universal       & \texttt{count}          & number of module instances to create         \\
+		universal       & \texttt{for\_each}      & create multiple instances keyed by a map/set \\
+		universal       & \texttt{depends\_on}    & explicit dependency edges                    \\
+		\midrule
+		module-specific & (e.g. \texttt{release}) & input variable defined by the module author  \\
+		module-specific & (e.g. \texttt{region})  & input variable defined by the module author  \\
+		module-specific & (e.g. \texttt{system})  & input variable defined by the module author  \\
+		\bottomrule
+	\end{tabular}
+\end{center}
 
 \chapter{Providers}
 Each resource type lives in a provider. A provider is a plugin for Terraform
@@ -133,8 +151,81 @@ initializing a working directory.
 		\item core communicates with plugins via remote procedure calls---rpcs
 		\item plugins communicate with their corresponding platforms via the network
 	\end{alist}
-
 \end{definition}
+
+\begin{figure}[H]
+	\begin{center}
+		\begin{tabular}{lll}
+			\toprule
+			provider & description                             & common use case                                      \\
+			\midrule
+			external & run scripts and consume JSON.\@         & Fetch values Terraform can’t natively get            \\
+			local    & local files and commands.               & Write config files, templates, or local-exec actions \\
+			null     & Dummy exposing \texttt{null\_resource}. & Glue logic, triggers, waiting for SSH                \\
+			random   & random strings, IDs, and passwords.     & Unique resource names, initial secrets               \\
+			template & templates with substitution             & Generate config files with Terraform variables       \\
+			tls      & TLS keys and certificates.              & ephemeral SSH keys or certs for cloud instances      \\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+	\caption{The 80/20 of providers for any cloud}
+\end{figure}
+
+\chapter{Provisioners}
+extra actions, after resource creation
+
+\begin{definition}{Provisioner}{}
+	A \emph{provisioner} is an imperative action attached to a Terraform
+	resource. Unlike resources, which model desired state declaratively,
+	provisioners execute scripts or commands at apply time. They are primarily
+	intended for bootstrapping.
+\end{definition}
+
+\begin{intuition}{Provisioner}{}
+	A provisioner steps over the boundary between provisioning and configuration
+	Provisioners are imperative glue, used when no declarative mechanism is
+	available.
+
+	\begin{center}
+		\begin{tabular}{ll}
+			\toprule
+			              &                                    \\
+			\midrule
+			provision     & declare resource must exist        \\
+			configuration & declare how resource should behave \\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+\end{intuition}
+
+\section{Types of Provisioners}
+\begin{itemize}
+	\item \textbf{remote-exec}: runs commands on the target via SSH/WinRM.
+	\item \textbf{local-exec}: runs commands on the local machine where Terraform runs.
+\end{itemize}
+
+\section{Common Patterns}
+\begin{itemize}
+	\item \emph{Bootstrap}: use \texttt{remote-exec} to install/configure software on a new instance.
+	\item \emph{Synchronization}: dummy \texttt{null\_resource} + no-op command to wait for SSH.
+	\item \emph{Glue}: \texttt{local-exec} to call external tools/scripts.
+\end{itemize}
+
+\section{Risks}
+\begin{itemize}
+	\item Not idempotent; results may vary between runs.
+	\item Failures can leave resources in partial state.
+	\item Harder to track than declarative resources.
+\end{itemize}
+
+\section{Alternatives}
+Prefer declarative solutions when available:
+\begin{itemize}
+	\item Cloud-init or user data for VM initialization.
+	\item Dedicated Terraform providers for service setup.
+	\item Modules abstracting bootstrap logic.
+\end{itemize}
+
 
 \part{Practice}
 \chapter{Tools}
